@@ -1,0 +1,102 @@
+name: Build Custom Telegraf
+
+on:
+  workflow_dispatch:
+    inputs:
+      telegraf_version:
+        description: "Telegraf version to build (vX.Y.Z)"
+        required: true
+        default: "1.31.1"
+      mode:
+        description: "Build mode"
+        type: choice
+        options: [mini, nano]
+        default: mini
+      config_dir:
+        description: "Directory with .conf files"
+        required: true
+        default: "config"
+      plugins_dir:
+        description: "Directory with custom plugins"
+        required: true
+        default: "plugins"
+      dist_dir:
+        description: "Distribution output directory"
+        required: true
+        default: "dist"
+      go_version:
+        description: "Go version"
+        required: true
+        default: "1.22.x"
+      go_get:
+        description: "Extra 'go get' modules (space or comma separated)"
+        required: false
+      publish_release:
+        description: "Create GitHub Release and upload artifact"
+        type: boolean
+        default: false
+      release_tag:
+        description: "Custom release tag (if publishing). If empty, a tag will be generated"
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [amd64, arm64]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go_version }}
+
+      - name: Validate config directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d "${{ inputs.config_dir }}" ]; then
+            echo "::error::Config directory not found: ${{ inputs.config_dir }}"; exit 1; fi
+          if ! ls "${{ inputs.config_dir }}"/*.conf >/dev/null 2>&1; then
+            echo "::error::No .conf files found in ${{ inputs.config_dir }}"; exit 1; fi
+
+      - name: Build custom Telegraf (matrix)
+        shell: bash
+        env:
+          GIT_TERMINAL_PROMPT: 0
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          set -euo pipefail
+          chmod +x cicd.sh
+          EXTRA=""
+          if [ -n "${{ inputs.go_get }}" ]; then EXTRA="--go-get '${{ inputs.go_get }}'"; fi
+          ./cicd.sh build \
+            --version "${{ inputs.telegraf_version }}" \
+            --mode "${{ inputs.mode }}" \
+            --config-dir "${{ inputs.config_dir }}" \
+            --plugins-dir "${{ inputs.plugins_dir }}" \
+            --dist-dir "${{ inputs.dist_dir }}" \
+            --artifact-dir out \
+            ${EXTRA}
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegraf-custom-${{ inputs.telegraf_version }}-${{ inputs.mode }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+          path: out/telegraf-custom-${{ inputs.telegraf_version }}-${{ inputs.mode }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+          if-no-files-found: error
+
+      - name: Upload checksum artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegraf-custom-${{ inputs.telegraf_version }}-${{ inputs.mode }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz.sha256
+          path: out/telegraf-custom-${{ inputs.telegraf_version }}-${{ inputs.mode }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz.sha256
+          if-no-files-found: error
