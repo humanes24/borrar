@@ -14,7 +14,7 @@ on:
         default: mini
       config_dir:
         description: "Directory with .conf files"
-        required: true
+        required: false
         default: "config"
       plugins_dir:
         description: "Directory with custom plugins"
@@ -65,10 +65,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -d "${{ inputs.config_dir }}" ]; then
-            echo "::error::Config directory not found: ${{ inputs.config_dir }}"; exit 1; fi
-          if ! ls "${{ inputs.config_dir }}"/*.conf >/dev/null 2>&1; then
-            echo "::error::No .conf files found in ${{ inputs.config_dir }}"; exit 1; fi
+          CONF_DIR="${{ inputs.config_dir }}"
+          if [ -z "$CONF_DIR" ]; then CONF_DIR="config"; fi
+          if [ ! -d "$CONF_DIR" ]; then
+            echo "::error::Config directory not found: $CONF_DIR"; exit 1; fi
+          if ! ls "$CONF_DIR"/*.conf >/dev/null 2>&1; then
+            echo "::error::No .conf files found in $CONF_DIR"; exit 1; fi
 
       - name: Build custom Telegraf (matrix)
         shell: bash
@@ -83,10 +85,12 @@ jobs:
           EXTRA=""
           if [ -n "${{ inputs.go_get }}" ]; then EXTRA+=" --go-get '${{ inputs.go_get }}'"; fi
           if [ -n "${{ inputs.go_get_file }}" ]; then EXTRA+=" --go-get-file '${{ inputs.go_get_file }}'"; fi
+          CONF_DIR="${{ inputs.config_dir }}"
+          if [ -z "$CONF_DIR" ]; then CONF_DIR="config"; fi
           ./cicd.sh build \
             --version "${{ inputs.telegraf_version }}" \
             --mode "${{ inputs.mode }}" \
-            --config-dir "${{ inputs.config_dir }}" \
+            --config-dir "$CONF_DIR" \
             --plugins-dir "${{ inputs.plugins_dir }}" \
             --dist-dir "${{ inputs.dist_dir }}" \
             --artifact-dir out \
