@@ -15,7 +15,6 @@ on:
       config_dir:
         description: "Directory with .conf files"
         required: false
-        default: "config"
       plugins_dir:
         description: "Directory with custom plugins"
         required: true
