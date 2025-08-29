@@ -14,6 +14,7 @@ Este repo incluye un workflow de GitHub Actions para construir una distribución
   - `plugins_dir` (directorio con plugins custom)
   - `dist_dir` (directorio de salida)
   - `go_get` (opcional: dependencias extra para `go get`)
+  - `go_get_file` (opcional: ruta a fichero con un módulo por línea)
   - Compila en matrix (`linux/amd64` y `linux/arm64`).
 
 Salida: un `tar.gz` por plataforma con el binario `telegraf` y los `.conf` en `plugins_conf/`.

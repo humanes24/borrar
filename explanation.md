@@ -33,7 +33,7 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
   - `--publish` (opcional) publica Release vía API (requiere `GITHUB_TOKEN`). El workflow de tags usa GoReleaser en su lugar.
 
 - `.github/workflows/build-telegraf.yml`: workflow manual (workflow_dispatch).
-  - Inputs: versión, modo, rutas de `config/` y `plugins/`, `go_get`, `go_version`.
+  - Inputs: versión, modo, rutas de `config/` y `plugins/`, `go_get`, `go_get_file`, `go_version`.
   - Matrix: `linux/amd64` y `linux/arm64` (`GOOS`/`GOARCH`, `CGO_ENABLED=0`).
   - Ejecuta `./cicd.sh build ...` y sube artifacts `tar.gz` y `sha256`.
 
@@ -82,7 +82,7 @@ Requisitos en GitHub (Settings del repo):
 ## Cómo extender
 
 - Más plataformas: añade a la matrix (ej. `linux/arm/v7`, `linux/386`, `darwin/amd64`, `darwin/arm64`). Valida compatibilidad de plugins; algunos podrían requerir `CGO_ENABLED=1` o toolchains.
-- Inputs adicionales: puedes exponer `--go-get-file` o `--dist-dir` como inputs del workflow si quieres variarlos desde UI.
+- Inputs adicionales: ya se expone `--go-get-file`; también puedes exponer `--dist-dir` como input si quieres variarlo desde UI.
 - Versionado: si los tags siguen SemVer (`vX.Y.Z`), las Releases quedarán alineadas con la versión de Telegraf o tu variante.
 
 ## Solución de problemas
