@@ -110,9 +110,9 @@ tar -C "$DIST_DIR" -czf "$ARTIFACT_DIR/$ARTIFACT_NAME" .
 # Checksum
 SHA_FILE="$ARTIFACT_DIR/${ARTIFACT_NAME}.sha256"
 if command -v sha256sum >/dev/null 2>&1; then
-  (cd "$ARTIFACT_DIR" && sha256sum "$ARTIFACT_NAME" > "${SHA_FILE}")
+  sha256sum "$ARTIFACT_DIR/$ARTIFACT_NAME" > "$SHA_FILE"
 else
-  (cd "$ARTIFACT_DIR" && shasum -a 256 "$ARTIFACT_NAME" > "${SHA_FILE}")
+  shasum -a 256 "$ARTIFACT_DIR/$ARTIFACT_NAME" > "$SHA_FILE"
 fi
 
 echo "ARTIFACT=$ARTIFACT_DIR/$ARTIFACT_NAME"
