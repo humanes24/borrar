@@ -34,6 +34,7 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
 
 - `.github/workflows/build-telegraf.yml`: workflow manual (workflow_dispatch).
   - Inputs: versión, modo, rutas de `config/` y `plugins/`, `go_get`, `go_get_file`, `go_version`.
+  - Validación de configs: solo se exige que `config_dir` exista y tenga `.conf` cuando `mode` = `nano`.
   - Matrix: `linux/amd64` y `linux/arm64` (`GOOS`/`GOARCH`, `CGO_ENABLED=0`).
   - Ejecuta `./cicd.sh build ...` y sube artifacts `tar.gz` y `sha256`.
 
@@ -87,7 +88,7 @@ Requisitos en GitHub (Settings del repo):
 
 ## Solución de problemas
 
-- “No .conf files found”: asegúrate de tener `config/*.conf` en el repo (el workflow valida esto).
+- “No .conf files found”: en modo `nano`, asegúrate de tener `config/*.conf` en el repo (el workflow lo valida). En `mini`, no es obligatorio.
 - Errores `go get`: usa `--go-get`/`--go-get-file` y fija versiones (`mod@vX.Y.Z`).
 - Plugins con Cgo: podrían fallar con `CGO_ENABLED=0`. Cambia a `CGO_ENABLED=1` y provee toolchain adecuada en el runner.
 - Permisos insuficientes al publicar: revisa “Workflow permissions” y que el job de release tenga `permissions: contents: write` (incluido).

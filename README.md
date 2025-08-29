@@ -17,6 +17,8 @@ Este repo incluye un workflow de GitHub Actions para construir una distribución
   - `go_get_file` (opcional: ruta a fichero con un módulo por línea)
   - Compila en matrix (`linux/amd64` y `linux/arm64`).
 
+Nota: `config_dir` solo es obligatorio en modo `nano`. En `mini`, si falta, el build continúa y se fuerza `mini` desde `build.sh`.
+
 Salida: un `tar.gz` por plataforma con el binario `telegraf` y los `.conf` en `plugins_conf/`.
 
 ### Ejecutar el binario empaquetado
