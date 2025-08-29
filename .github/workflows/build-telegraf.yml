@@ -81,24 +81,25 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x cicd.sh
-          EXTRA=""
-          if [ -n "${{ inputs.go_get }}" ]; then EXTRA+=" --go-get '${{ inputs.go_get }}'"; fi
-          if [ -n "${{ inputs.go_get_file }}" ]; then EXTRA+=" --go-get-file '${{ inputs.go_get_file }}'"; fi
           CONF_DIR="${{ inputs.config_dir }}"
           if [ -z "$CONF_DIR" ]; then CONF_DIR="config"; fi
           DIST_DIR_INPUT="${{ inputs.dist_dir }}"
-          DIST_ARG=""
           if [ -n "$DIST_DIR_INPUT" ]; then
             mkdir -p "$DIST_DIR_INPUT"
-            DIST_ARG=" --dist-dir '$DIST_DIR_INPUT'"
           fi
-          ./cicd.sh build \
-            --version "${{ inputs.telegraf_version }}" \
-            --mode "${{ inputs.mode }}" \
-            --config-dir "$CONF_DIR" \
-            --plugins-dir "${{ inputs.plugins_dir }}" \
-            --artifact-dir out \
-            ${EXTRA} ${DIST_ARG}
+
+          ARGS=(
+            --version "${{ inputs.telegraf_version }}"
+            --mode "${{ inputs.mode }}"
+            --config-dir "$CONF_DIR"
+            --plugins-dir "${{ inputs.plugins_dir }}"
+            --artifact-dir out
+          )
+          if [ -n "${{ inputs.go_get }}" ]; then ARGS+=(--go-get "${{ inputs.go_get }}"); fi
+          if [ -n "${{ inputs.go_get_file }}" ]; then ARGS+=(--go-get-file "${{ inputs.go_get_file }}"); fi
+          if [ -n "$DIST_DIR_INPUT" ]; then ARGS+=(--dist-dir "$DIST_DIR_INPUT"); fi
+
+          ./cicd.sh build "${ARGS[@]}"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
