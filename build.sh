@@ -161,10 +161,17 @@ if [ -n "$GO_GET_FILE" ]; then
         echo "❌ Error: fichero no encontrado para --go-get-file: $GO_GET_FILE"
         exit 1
     fi
-    while IFS= read -r line; do
+    echo "📝 Leyendo dependencias desde archivo: $GO_GET_FILE"
+    count=0
+    while IFS= read -r raw || [ -n "$raw" ]; do
+        # Quitar comentarios y espacios en blanco
+        line="${raw%%#*}"
+        line="$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
         [ -z "$line" ] && continue
         GO_GET_LIST+=" $line"
+        count=$((count+1))
     done < "$GO_GET_FILE"
+    echo "🧾 Dependencias cargadas: $count"
 fi
 
 # Normalizamos separadores (comas y espacios) a saltos de línea y ejecutamos go get
