@@ -20,10 +20,6 @@ on:
         description: "Directory with custom plugins"
         required: true
         default: "plugins"
-      dist_dir:
-        description: "Distribution output directory"
-        required: true
-        default: "dist"
       go_version:
         description: "Go version"
         required: true
@@ -92,7 +88,6 @@ jobs:
             --mode "${{ inputs.mode }}" \
             --config-dir "$CONF_DIR" \
             --plugins-dir "${{ inputs.plugins_dir }}" \
-            --dist-dir "${{ inputs.dist_dir }}" \
             --artifact-dir out \
             ${EXTRA}
 
