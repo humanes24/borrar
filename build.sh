@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Valores por defecto
-TELEGRAF_VERSION="1.31.1"
+TELEGRAF_VERSION="1.35.4"
 CONFIG_DIR="config"
 CUSTOM_PLUGINS_DIR="plugins"
 MODE="mini"  # mini por defecto

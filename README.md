@@ -8,7 +8,7 @@ Este repo incluye un workflow de GitHub Actions para construir una distribución
 - Workflow: `.github/workflows/build-telegraf.yml`
 - Dispara desde la pestaña Actions (workflow_dispatch).
 - Inputs principales:
-  - `telegraf_version` (por defecto `1.31.1`)
+  - `telegraf_version` (por defecto `1.35.4`)
   - `mode` (`mini` o `nano`)
   - `config_dir` (directorio con ficheros `.conf`)
   - `plugins_dir` (directorio con plugins custom)
@@ -40,9 +40,9 @@ Se genera un script de ayuda `run_oda_lite.sh` junto al artefacto compilado. Eje
 
 El script `cicd.sh` envuelve a `build.sh` para uso en CI/CD:
 
-- Build: `./cicd.sh build --version 1.31.1 --mode mini --config-dir config --plugins-dir plugins --dist-dir dist --artifact-dir out`
+- Build: `./cicd.sh build --version 1.35.4 --mode mini --config-dir config --plugins-dir plugins --dist-dir dist --artifact-dir out`
 - Dependencias extra: añadir `--go-get "mod1@ver, mod2@latest"` o `--go-get-file deps.txt`.
-- Publicación (manual/local): `GITHUB_TOKEN=... ./cicd.sh build-and-release --version 1.31.1 --mode mini --publish [--release-tag v1.31.1-custom]`.
+- Publicación (manual/local): `GITHUB_TOKEN=... ./cicd.sh build-and-release --version 1.35.4 --mode mini --publish [--release-tag v1.35.4-custom]`.
 
 ### Releases por tag con GoReleaser
 

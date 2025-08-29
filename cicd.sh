@@ -13,7 +13,7 @@ Uso: $0 build [opciones]
      $0 build-and-release [opciones]
 
 Opciones comunes:
-  --version <v>           Versión de Telegraf (ej: 1.31.1)
+  --version <v>           Versión de Telegraf (ej: 1.35.4)
   --mode <nano|mini>      Modo de compilación (default: mini)
   --config-dir <dir>      Directorio con .conf (default: config)
   --plugins-dir <dir>     Directorio de plugins (default: plugins)
@@ -36,7 +36,7 @@ if [[ ${1:-} == "build" || ${1:-} == "build-and-release" ]]; then
   cmd="$1"; shift
 fi
 
-TELEGRAF_VERSION="1.31.1"
+TELEGRAF_VERSION="1.35.4"
 MODE="mini"
 CONFIG_DIR="config"
 PLUGINS_DIR="plugins"

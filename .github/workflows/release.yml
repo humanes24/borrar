@@ -31,7 +31,7 @@ jobs:
           set -euo pipefail
           chmod +x cicd.sh
           ./cicd.sh build \
-            --version "1.31.1" \
+            --version "1.35.4" \
             --mode mini \
             --config-dir config \
             --plugins-dir plugins \
@@ -73,4 +73,3 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

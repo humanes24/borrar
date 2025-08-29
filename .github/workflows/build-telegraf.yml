@@ -6,7 +6,7 @@ on:
       telegraf_version:
         description: "Telegraf version to build (vX.Y.Z)"
         required: true
-        default: "1.31.1"
+        default: "1.35.4"
       mode:
         description: "Build mode"
         type: choice
