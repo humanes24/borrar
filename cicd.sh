@@ -73,6 +73,9 @@ done
 
 mkdir -p "$ARTIFACT_DIR"
 
+# Asegurar que el directorio de distribución exista para que build.sh no falle
+mkdir -p "$DIST_DIR"
+
 for cmd_required in go git tar; do
   if ! command -v "$cmd_required" >/dev/null 2>&1; then
     echo "❌ Falta dependencia: $cmd_required"; exit 1
@@ -167,4 +170,3 @@ if [ "$PUBLISH" = true ] || [ "$cmd" = "build-and-release" ]; then
   done
   echo "✅ Release publicada: ${REPO_SLUG} tag ${RELEASE_TAG}"
 fi
-
