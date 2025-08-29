@@ -20,7 +20,7 @@ on:
         required: true
         default: "plugins"
       dist_dir:
-        description: "Distribution output directory (optional). If empty, build.sh uses '.'"
+        description: "Distribution output directory (optional). If empty, cicd.sh uses 'dist'"
         required: false
         default: ""
       go_version:

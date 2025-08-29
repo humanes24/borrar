@@ -34,7 +34,7 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
 
 - `.github/workflows/build-telegraf.yml`: workflow manual (workflow_dispatch).
   - Inputs: versión, modo, rutas de `config/` y `plugins/`, `dist_dir` (opcional), `go_get`, `go_get_file`, `go_version`.
-  - `dist_dir`: si se omite, no se pasa a `build.sh` y este usa `.` por defecto. Si se define, el workflow crea el directorio antes del build.
+  - `dist_dir`: si se omite, el wrapper `cicd.sh` usará `dist` por defecto y lo creará antes del build. Si se define en el input, se crea ese directorio y se pasa a `build.sh`.
   - Validación de configs: solo se exige que `config_dir` exista y tenga `.conf` cuando `mode` = `nano`.
   - Matrix: `linux/amd64` y `linux/arm64` (`GOOS`/`GOARCH`, `CGO_ENABLED=0`).
   - Ejecuta `./cicd.sh build ...` y sube artifacts `tar.gz` y `sha256`.

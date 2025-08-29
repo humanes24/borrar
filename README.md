@@ -12,14 +12,14 @@ Este repo incluye un workflow de GitHub Actions para construir una distribución
   - `mode` (`mini` o `nano`)
   - `config_dir` (directorio con ficheros `.conf`)
   - `plugins_dir` (directorio con plugins custom)
-  - `dist_dir` (opcional: directorio de salida; si se deja vacío, no se pasa y `build.sh` usa `.`)
+  - `dist_dir` (opcional: directorio de salida; si se deja vacío, el wrapper `cicd.sh` usará `dist` por defecto)
   - `go_get` (opcional: dependencias extra para `go get`)
   - `go_get_file` (opcional: ruta a fichero con un módulo por línea)
   - Compila en matrix (`linux/amd64` y `linux/arm64`).
 
 Notas:
 - `config_dir` solo es obligatorio en modo `nano`. En `mini`, si falta, el build continúa y se fuerza `mini` desde `build.sh`.
-- Si defines `dist_dir`, el workflow crea el directorio antes de invocar el build.
+- Si dejas `dist_dir` vacío, `cicd.sh` usará `dist` por defecto y lo creará antes de invocar el build. Si lo defines, creará ese directorio.
 
 Salida: un `tar.gz` por plataforma con el binario `telegraf` y los `.conf` en `plugins_conf/`.
 
