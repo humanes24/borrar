@@ -19,6 +19,10 @@ on:
         description: "Directory with custom plugins"
         required: true
         default: "plugins"
+      dist_dir:
+        description: "Distribution output directory (optional). If empty, build.sh uses '.'"
+        required: false
+        default: ""
       go_version:
         description: "Go version"
         required: true
@@ -82,13 +86,19 @@ jobs:
           if [ -n "${{ inputs.go_get_file }}" ]; then EXTRA+=" --go-get-file '${{ inputs.go_get_file }}'"; fi
           CONF_DIR="${{ inputs.config_dir }}"
           if [ -z "$CONF_DIR" ]; then CONF_DIR="config"; fi
+          DIST_DIR_INPUT="${{ inputs.dist_dir }}"
+          DIST_ARG=""
+          if [ -n "$DIST_DIR_INPUT" ]; then
+            mkdir -p "$DIST_DIR_INPUT"
+            DIST_ARG=" --dist-dir '$DIST_DIR_INPUT'"
+          fi
           ./cicd.sh build \
             --version "${{ inputs.telegraf_version }}" \
             --mode "${{ inputs.mode }}" \
             --config-dir "$CONF_DIR" \
             --plugins-dir "${{ inputs.plugins_dir }}" \
             --artifact-dir out \
-            ${EXTRA}
+            ${EXTRA} ${DIST_ARG}
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
