@@ -16,7 +16,7 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
 2) El job de build ejecuta `./cicd.sh build` (wrapper que llama a `build.sh`).
 3) `build.sh` clona Telegraf, incorpora plugins, ajusta dependencias Go y compila usando `custom_builder` de Telegraf. Si no existe el directorio de `config`, fuerza el modo `mini` (si pediste `nano`, avisa y lo ignora).
 4) `cicd.sh` empaqueta resultados en `out/*.tar.gz` y genera `*.sha256`.
-5) Para releases por tag, un segundo job descarga los artifacts y ejecuta GoReleaser, que crea/actualiza la Release y adjunta los `tar.gz`/`sha256` como blobs.
+5) Para releases por tag, un segundo job descarga los artifacts en `dist/` y ejecuta GoReleaser, que crea/actualiza la Release y adjunta los `tar.gz`/`sha256` usando `release.extra_files`.
 
 ## Archivos clave
 
@@ -42,12 +42,12 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
 - `.github/workflows/release.yml`: workflow por tag.
   - Trigger: `push` de tags `v*` o `custom-telegraf-*`.
   - Job matrix: igual que el manual, genera artifacts y los sube.
-  - Job `release`: descarga artifacts y ejecuta GoReleaser para crear/actualizar la Release y adjuntar los blobs.
+  - Job `release`: descarga artifacts a `dist/` y ejecuta GoReleaser para crear/actualizar la Release y adjuntar los assets desde `dist/**`.
+  - Checkout con `fetch-depth: 0` para correcta detección de tags previos.
 
-- `.goreleaser.yaml`: configuración de GoReleaser.
-  - No compila binarios (no hay `builds`); usa la sección `blobs` para publicar archivos ya generados (los `tar.gz` y `sha256`).
-  - Busca archivos bajo `release/**/*.tar.gz` y `release/**/*.sha256` (ruta donde el job de release descarga artifacts).
-  - Genera `checksums.txt` consolidado.
+- `.goreleaser.yaml`: configuración de GoReleaser (v2).
+  - No compila binarios (sin `builds`); adjunta archivos ya generados mediante `release.extra_files`.
+  - Busca archivos bajo `dist/**/*.tar.gz` y `dist/**/*.sha256` (el job de release descarga artifacts ahí para evitar estado "dirty").
 
 ## Detalles técnicos relevantes
 
@@ -63,7 +63,7 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
 - Manual: Actions → “Build Custom Telegraf”. Permite probar builds sin publicar Release.
 - Por tag: al hacer push de una etiqueta `vX.Y.Z` o `custom-telegraf-...`, se compila y se publica Release automáticamente con GoReleaser.
   - GoReleaser detecta la versión desde el tag actual del commit.
-  - Publica blobs (los tarballs y checksums) en la Release del tag.
+  - Publica los tarballs y checksums como assets en la Release usando `release.extra_files` (acción fijada a `v2.11.2`).
 
 ## Permisos, tokens y configuración del repo
 
