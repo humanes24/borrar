@@ -13,3 +13,5 @@ changelog:
   use: github
 
 # No builds aquí; adjuntamos ficheros ya generados mediante release.extra_files
+builds: []
+archives: []
