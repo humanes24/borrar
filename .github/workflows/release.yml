@@ -51,6 +51,7 @@ jobs:
             --config-dir config \
             --plugins-dir plugins \
             --dist-dir dist \
+            --go-get-file dependencies.txt \
             --artifact-dir out \
             --keep-source
 
