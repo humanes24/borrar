@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -56,11 +58,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          path: release
+          # Descargar dentro de 'dist' para que GoReleaser lo ignore y no marque el repo como dirty
+          path: dist
 
       - name: Setup Go
         uses: actions/setup-go@v5

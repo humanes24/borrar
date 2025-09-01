@@ -5,8 +5,8 @@ release:
   prerelease: false
   draft: false
   extra_files:
-    - glob: release/**/*.tar.gz
-    - glob: release/**/*.sha256
+    - glob: dist/**/*.tar.gz
+    - glob: dist/**/*.sha256
 
 changelog:
   sort: desc
