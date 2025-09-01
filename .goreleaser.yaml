@@ -4,17 +4,12 @@ project_name: oda-lite
 release:
   prerelease: false
   draft: false
+  extra_files:
+    - glob: release/**/*.tar.gz
+    - glob: release/**/*.sha256
 
 changelog:
   sort: desc
   use: github
 
-# No builds here; usamos blobs con artefactos ya generados por CI
-blobs:
-  - provider: github
-    files:
-      - glob: release/**/*.tar.gz
-        # Conservar nombres existentes
-        name_template: "{{ .ArtifactName }}"
-      - glob: release/**/*.sha256
-        name_template: "{{ .ArtifactName }}"
+# No builds aquí; adjuntamos ficheros ya generados mediante release.extra_files
