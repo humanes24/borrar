@@ -44,6 +44,7 @@ DIST_DIR="dist"
 GO_GET_LIST=""
 GO_GET_FILE=""
 ARTIFACT_DIR="out"
+KEEP_SOURCE=false
 
 PUBLISH=false
 RELEASE_TAG=""
@@ -61,6 +62,7 @@ while [[ $# -gt 0 ]]; do
     --go-get) GO_GET_LIST+=" $2"; shift 2;;
     --go-get-file) GO_GET_FILE="$2"; shift 2;;
     --artifact-dir) ARTIFACT_DIR="$2"; shift 2;;
+    --keep-source) KEEP_SOURCE=true; shift 1;;
     --publish) PUBLISH=true; shift 1;;
     --release-tag) RELEASE_TAG="$2"; shift 2;;
     --release-name) RELEASE_NAME="$2"; shift 2;;
@@ -94,6 +96,7 @@ BUILD_ARGS=(
 )
 if [ -n "$GO_GET_LIST" ]; then BUILD_ARGS+=(--go-get "$GO_GET_LIST"); fi
 if [ -n "$GO_GET_FILE" ]; then BUILD_ARGS+=(--go-get-file "$GO_GET_FILE"); fi
+if [ "$KEEP_SOURCE" = true ]; then BUILD_ARGS+=(--keep-source); fi
 
 echo "🧱 Ejecutando build.sh ${BUILD_ARGS[*]}"
 ./build.sh "${BUILD_ARGS[@]}"
