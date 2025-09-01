@@ -11,17 +11,10 @@ changelog:
 
 # No builds here; usamos blobs con artefactos ya generados por CI
 blobs:
-  - extra_files: []
-    provider: github
-    glob: release/**/*.tar.gz
-    # Conservar nombres existentes
-    name_template: "{{ .ArtifactName }}"
-  - extra_files: []
-    provider: github
-    glob: release/**/*.sha256
-    name_template: "{{ .ArtifactName }}"
-
-checksum:
-  name_template: "checksums.txt"
-  algorithm: sha256
-  split: false
+  - provider: github
+    files:
+      - glob: release/**/*.tar.gz
+        # Conservar nombres existentes
+        name_template: "{{ .ArtifactName }}"
+      - glob: release/**/*.sha256
+        name_template: "{{ .ArtifactName }}"
