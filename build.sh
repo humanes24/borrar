@@ -11,6 +11,7 @@ DIST_DIR="." # directorio destino de distribución (por defecto, raíz)
 NO_INTERACTIVE=false
 GO_GET_LIST=""
 GO_GET_FILE=""
+KEEP_SOURCE=false
 
 usage() {
     echo "Uso: $0 [--version <telegraf_version>] [--config-dir <dir_config>] [--plugins-dir <dir_plugins>] [--mode <nano|mini>] [--dist-dir <dir_destino>] [--no-interactive] [--go-get <mod@ver ...>] [--go-get-file <ruta>]"
@@ -25,6 +26,7 @@ usage() {
     echo "  --go-get        Lista de módulos a añadir (separados por espacio o coma). Repetible"
     echo "  --go-get-file   Fichero con una dependencia por línea para 'go get'"
     echo "  --help          Muestra esta ayuda"
+    echo "  --keep-source   No elimina el árbol clonado (telegraf_src) al finalizar"
     echo
     echo "Ejemplo de uso:"
     echo "  $0 --version 1.31.0 --config-dir /ruta/configs --plugins-dir /ruta/mis_plugins --mode mini --dist-dir dist"
@@ -87,6 +89,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --help|-h)
       usage
+      ;;
+    --keep-source)
+      KEEP_SOURCE=true
+      shift 1
       ;;
     *)
       echo "❌ Opción desconocida: $1"
@@ -412,8 +418,12 @@ sed -e "s|__DIST_DIR__|$DIST_DIR|g" -e "s|__TELEGRAF_VERSION__|$TELEGRAF_VERSION
 chmod +x run_oda_lite.sh
 
 # Eliminar directorio de compilación para no depender de él en runtime
-echo "🧹 Eliminando directorio de compilación: $CLONE_DIR"
-rm -rf "$CLONE_DIR"
+if [ "$KEEP_SOURCE" = true ]; then
+  echo "ℹ️ Manteniendo directorio de compilación: $CLONE_DIR (flag --keep-source)"
+else
+  echo "🧹 Eliminando directorio de compilación: $CLONE_DIR"
+  rm -rf "$CLONE_DIR"
+fi
 
 echo "✅ Compilación finalizada. Ejecutable y configs listos en: $DIST_DIR"
 echo "   Usa ./run_oda_lite.sh para arrancar Telegraf"

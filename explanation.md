@@ -1,6 +1,6 @@
 # Explicación técnica: CI/CD de Telegraf custom
 
-Este documento explica el flujo de extremo a extremo para construir y publicar una distribución personalizada de Telegraf desde este repositorio, usando GitHub Actions y GoReleaser. Se mantendrá actualizado a medida que evolucione el pipeline.
+Este documento explica el flujo de extremo a extremo para construir y publicar una distribución personalizada de Telegraf desde este repositorio, usando GitHub Actions. La publicación se realiza creando la Release de GitHub y subiendo los artefactos generados; no se compila dentro de la fase de publicación.
 
 ## Visión general
 
@@ -16,7 +16,7 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
 2) El job de build ejecuta `./cicd.sh build` (wrapper que llama a `build.sh`).
 3) `build.sh` clona Telegraf, incorpora plugins, ajusta dependencias Go y compila usando `custom_builder` de Telegraf. Si no existe el directorio de `config`, fuerza el modo `mini` (si pediste `nano`, avisa y lo ignora).
 4) `cicd.sh` empaqueta resultados en `out/*.tar.gz` y genera `*.sha256`.
-5) Para releases por tag, un segundo job descarga los artifacts en `dist/` y ejecuta GoReleaser, que crea/actualiza la Release y adjunta los `tar.gz`/`sha256` usando `release.extra_files`.
+5) Para releases por tag, un segundo job descarga los artifacts y crea la Release en GitHub adjuntando los `tar.gz`/`sha256` y, en Linux, los paquetes `.deb`/`.rpm` generados por el Makefile de Telegraf.
 
 ## Archivos clave
 
@@ -41,13 +41,19 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
 
 - `.github/workflows/release.yml`: workflow por tag.
   - Trigger: `push` de tags `v*` o `custom-telegraf-*`.
-  - Job matrix: igual que el manual, genera artifacts y los sube.
-  - Job `release`: descarga artifacts a `dist/` y ejecuta GoReleaser para crear/actualizar la Release y adjuntar los assets desde `dist/**`.
+  - Job matrix: amplio (linux/amd64, linux/arm64, linux/arm/v7, darwin/amd64, darwin/arm64, windows/amd64). Compila y empaqueta.
+  - En Linux, ejecuta `make package` (o `package-deb`/`package-rpm`) en `telegraf_src` para generar `.deb`/`.rpm`.
+  - Job `release`: descarga artifacts y crea la Release subiendo todos los assets.
   - Checkout con `fetch-depth: 0` para correcta detección de tags previos.
 
-- `.goreleaser.yaml`: configuración de GoReleaser (v2).
-  - No compila binarios (sin `builds`); adjunta archivos ya generados mediante `release.extra_files`.
-  - Busca archivos bajo `dist/**/*.tar.gz` y `dist/**/*.sha256` (el job de release descarga artifacts ahí para evitar estado "dirty").
+Nota: ya no usamos GoReleaser para publicar; la Release se crea con la acción `softprops/action-gh-release` adjuntando todos los artifacts generados por los jobs de build.
+
+## Empaquetado (.deb/.rpm)
+
+- Tras el build, el workflow ejecuta dentro de `telegraf_src` los targets del Makefile de Telegraf:
+  - `make package-deb` y `make package-rpm` (si no existe el target específico, usa `make package`).
+- Los paquetes resultantes se recogen desde `telegraf_src/dist/` y se suben como artifacts del job.
+- En el job de release, GoReleaser adjunta esos `.deb`/`.rpm` como assets del tag (vía `release.extra_files`).
 
 ## Detalles técnicos relevantes
 
@@ -61,9 +67,7 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
 ## Disparadores y publicación
 
 - Manual: Actions → “Build Custom Telegraf”. Permite probar builds sin publicar Release.
-- Por tag: al hacer push de una etiqueta `vX.Y.Z` o `custom-telegraf-...`, se compila y se publica Release automáticamente con GoReleaser.
-  - GoReleaser detecta la versión desde el tag actual del commit.
-  - Publica los tarballs y checksums como assets en la Release usando `release.extra_files` (acción fijada a `v2.11.2`).
+- Por tag: al hacer push de una etiqueta `vX.Y.Z` o `custom-telegraf-...`, se compila y se publica Release automáticamente subiendo los artefactos al tag.
 
 ## Permisos, tokens y configuración del repo
 

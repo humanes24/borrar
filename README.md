@@ -21,7 +21,7 @@ Notas:
 - `config_dir` solo es obligatorio en modo `nano`. En `mini`, si falta, el build continúa y se fuerza `mini` desde `build.sh`.
 - Si dejas `dist_dir` vacío, `cicd.sh` usará `dist` por defecto y lo creará antes de invocar el build. Si lo defines, creará ese directorio.
 
-Salida: un `tar.gz` por plataforma con el binario `telegraf` y los `.conf` en `plugins_conf/`.
+Salida: un `tar.gz` por plataforma con el binario `telegraf` y los `.conf` en `plugins_conf/`. Además, se generan paquetes `.deb` y `.rpm` para Linux (amd64/arm64) usando el Makefile de Telegraf.
 
 ### Ejecutar el binario empaquetado
 
@@ -44,13 +44,13 @@ El script `cicd.sh` envuelve a `build.sh` para uso en CI/CD:
 - Dependencias extra: añadir `--go-get "mod1@ver, mod2@latest"` o `--go-get-file deps.txt`.
 - Publicación (manual/local): `GITHUB_TOKEN=... ./cicd.sh build-and-release --version 1.35.4 --mode mini --publish [--release-tag v1.35.4-custom]`.
 
-### Releases por tag con GoReleaser
+### Releases por tag
 
 Workflow: `.github/workflows/release.yml`
 
 - Trigger: push de tags `v*` o `custom-telegraf-*`.
-- Job matrix construye artefactos y checksums y los sube como artifacts.
-- Job de release descarga los artifacts en `dist/` y usa GoReleaser (`.goreleaser.yaml`) para crear la Release y adjuntar los tarballs/checksums como assets mediante `release.extra_files` (acción fijada a `v2.11.2`).
+- Job matrix compila artefactos y genera checksums; en Linux además empaqueta `.deb` y `.rpm` ejecutando `make package` (o `make package-deb`/`make package-rpm`) dentro de `telegraf_src`.
+- Job de release descarga los artifacts y crea la Release adjuntando todos los assets (tar.gz, sha256, deb, rpm, zip si aplica).
 - Memoria del proyecto: `.codex/memory.json` y util `scripts/mem.sh` para añadir/listar/olvidar entradas (decisiones, TODOs, convenciones). Ejemplos:
   - `./scripts/mem.sh remember "Usar GoReleaser con blobs" --type decision --tags goreleaser,actions`
   - `./scripts/mem.sh list --scope repo`

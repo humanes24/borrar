@@ -11,8 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux]
-        goarch: [amd64, arm64]
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: linux
+            goarch: arm
+            goarm: '7'
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,6 +40,7 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
           CGO_ENABLED: 0
         run: |
           set -euo pipefail
@@ -38,16 +51,36 @@ jobs:
             --config-dir config \
             --plugins-dir plugins \
             --dist-dir dist \
-            --go-get-file dependencies.txt \
-            --artifact-dir out
+            --artifact-dir out \
+            --keep-source
+
+      - name: Package via Telegraf Makefile (Linux only)
+        if: ${{ matrix.goos == 'linux' }}
+        run: |
+          set -euo pipefail
+          echo "Packaging with Telegraf Makefile in telegraf_src"
+          pushd telegraf_src
+          if make -n tools >/dev/null 2>&1; then make tools; fi
+          if make -n package >/dev/null 2>&1; then
+            make package
+          else
+            if make -n package-deb >/dev/null 2>&1; then make package-deb; fi
+            if make -n package-rpm >/dev/null 2>&1; then make package-rpm || true; fi
+          fi
+          popd
+          mkdir -p out
+          shopt -s nullglob
+          for f in telegraf_src/dist/*.{deb,rpm}; do
+            echo "Found package: $f"; cp -f "$f" out/;
+          done
+          shopt -u nullglob
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: artifacts-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
-            out/*.tar.gz
-            out/*.sha256
+            out/*
           if-no-files-found: error
 
   release:
@@ -64,18 +97,18 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          # Descargar dentro de 'dist' para que GoReleaser lo ignore y no marque el repo como dirty
-          path: dist
+          path: release
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
         with:
-          go-version: "1.22.x"
-
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          version: v2.11.2
-          args: release --clean
+          files: |
+            release/**/*.tar.gz
+            release/**/*.sha256
+            release/**/*.deb
+            release/**/*.rpm
+            release/**/*.zip
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
