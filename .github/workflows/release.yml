@@ -9,6 +9,22 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: linux-core
+            include_packages: "amd64.deb x86_64.rpm linux_amd64.tar.gz arm64.deb aarch64.rpm linux_arm64.tar.gz"
+          - group: linux-legacy
+            include_packages: "i386.deb i386.rpm linux_i386.tar.gz armel.deb armel.rpm linux_armel.tar.gz armhf.deb armv6hl.rpm linux_armhf.tar.gz"
+          - group: linux-alt
+            include_packages: "mips.deb linux_mips.tar.gz mipsel.deb linux_mipsel.tar.gz riscv64.deb riscv64.rpm linux_riscv64.tar.gz loong64.deb loong64.rpm linux_loong64.tar.gz s390x.deb s390x.rpm linux_s390x.tar.gz ppc64el.deb ppc64le.rpm linux_ppc64le.tar.gz"
+          - group: windows
+            include_packages: "windows_i386.zip windows_amd64.zip windows_arm64.zip"
+          - group: darwin
+            include_packages: "darwin_amd64.tar.gz darwin_arm64.tar.gz"
+          - group: freebsd
+            include_packages: "freebsd_amd64.tar.gz freebsd_i386.tar.gz freebsd_armv7.tar.gz"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,6 +35,15 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.22.x"
+
+      - name: Free disk space (hosted runner)
+        run: |
+          set -euxo pipefail
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+          sudo docker system prune -af || true
 
       - name: Build custom Telegraf source (inject plugins + deps)
         env:
@@ -43,15 +68,18 @@ jobs:
           sudo apt-get install -y ruby ruby-dev rubygems rpm zip
           sudo gem install --no-document fpm
 
-      - name: Package all distributions via Telegraf Makefile
+      - name: Package group via Telegraf Makefile
         run: |
           set -euo pipefail
-          echo "Packaging ALL via Telegraf Makefile in telegraf_src (make package)"
+          echo "Packaging group ${{ matrix.group }} via Telegraf Makefile (make package include_packages=...)"
           pushd telegraf_src
-          make package
+          make package include_packages="${{ matrix.include_packages }}"
           popd
           mkdir -p out
           cp -fv telegraf_src/build/dist/* out/ || true
+          # Limpieza para liberar espacio
+          rm -rf telegraf_src/build || true
+          go clean -cache -modcache -testcache || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
