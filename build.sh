@@ -263,11 +263,14 @@ fi
 cd "$REPO_ROOT"
 
 # Copiar binario compilado
-if [ -f "$CLONE_DIR/telegraf" ]; then
-  echo "📦 Copiando binario a destino: $DIST_DIR/telegraf"
-  cp -f "$CLONE_DIR/telegraf" "$DIST_DIR/telegraf"
+TARGET_GOOS="${GOOS:-$(go env GOOS)}"
+BIN_NAME="telegraf"
+if [ "$TARGET_GOOS" = "windows" ]; then BIN_NAME="telegraf.exe"; fi
+if [ -f "$CLONE_DIR/$BIN_NAME" ]; then
+  echo "📦 Copiando binario a destino: $DIST_DIR/$BIN_NAME"
+  cp -f "$CLONE_DIR/$BIN_NAME" "$DIST_DIR/$BIN_NAME"
 else
-  echo "❌ No se encontró el binario compilado en $CLONE_DIR/telegraf"
+  echo "❌ No se encontró el binario compilado en $CLONE_DIR/$BIN_NAME"
   exit 1
 fi
 
