@@ -41,7 +41,8 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
 
 - `.github/workflows/release.yml`: workflow por tag.
   - Trigger: `push` de tags `v*` o `custom-telegraf-*`.
-  - Job build: prepara `telegraf_src` y ejecuta `make package` segmentado por grupos usando `include_packages` (Linux core/legacy/alt, Windows, Darwin, FreeBSD) para reducir uso de disco por runner.
+  - Job build: prepara `telegraf_src` y ejecuta `make package` segmentado por grupos usando `include_packages` (Linux core/legacy, Windows, Darwin, FreeBSD) para reducir uso de disco por runner.
+    - Nota: el grupo Linux "alt" (mips, mipsel, riscv64, loong64, s390x, ppc64le) está comentado temporalmente para ahorrar espacio/tiempo; puede reactivarse editando la matriz del workflow.
     - Paso previo libera espacio del runner (`/usr/share/dotnet`, `/opt/ghc`, Android, CodeQL, prune de Docker) y al final limpia caches (`go clean`) y `telegraf_src/build`.
   - Job `release`: descarga artifacts y crea la Release subiendo todos los assets.
   - Checkout con `fetch-depth: 0` para correcta detección de tags previos.
