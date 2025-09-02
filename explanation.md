@@ -1,6 +1,6 @@
 # Explicación técnica: CI/CD de Telegraf custom
 
-Este documento explica el flujo de extremo a extremo para construir y publicar una distribución personalizada de Telegraf desde este repositorio, usando GitHub Actions. La publicación se realiza creando la Release de GitHub y subiendo los artefactos generados; no se compila dentro de la fase de publicación.
+Este documento explica el flujo de extremo a extremo para construir y publicar una distribución personalizada de Telegraf desde este repositorio, usando GitHub Actions. La publicación se realiza creando la Release de GitHub y subiendo los artefactos generados por el Makefile de Telegraf; no se compila dentro de la fase de publicación.
 
 ## Visión general
 
@@ -8,15 +8,15 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
 - Modos de build:
   - `mini`: incluye todos los plugins de Telegraf + los custom.
   - `nano`: incluye solo los plugins referenciados en los `.conf` (resuelve dependencias desde `plugins_conf`).
-- Outputs: archivos `tar.gz` por plataforma con el binario `telegraf` y la carpeta `plugins_conf/` con los `.conf`. Se genera además un `.sha256` por cada `tar.gz`.
+- Outputs: archivos `tar.gz` por plataforma con el binario `telegraf` y la carpeta `plugins_conf/` con los `.conf` (en Windows se genera `.zip`). Se genera además un `.sha256` por cada artefacto.
 
 ## Flujo end-to-end
 
 1) GitHub Action dispara el build (manual o por tag).
-2) El job de build ejecuta `./cicd.sh build` (wrapper que llama a `build.sh`).
+2) El job de build ejecuta `./cicd.sh build` (wrapper que llama a `build.sh`) para preparar `telegraf_src` con plugins y deps.
 3) `build.sh` clona Telegraf, incorpora plugins, ajusta dependencias Go y compila usando `custom_builder` de Telegraf. Si no existe el directorio de `config`, fuerza el modo `mini` (si pediste `nano`, avisa y lo ignora).
-4) `cicd.sh` empaqueta resultados en `out/*.tar.gz` y genera `*.sha256`.
-5) Para releases por tag, un segundo job descarga los artifacts y crea la Release en GitHub adjuntando los `tar.gz`/`sha256` y, en Linux, los paquetes `.deb`/`.rpm` generados por el Makefile de Telegraf.
+4) El workflow ejecuta `make package` dentro de `telegraf_src` y copia todos los paquetes a `out/`.
+5) Para releases por tag, un segundo job descarga los artifacts y crea la Release en GitHub adjuntando todos los paquetes.
 
 ## Archivos clave
 
@@ -28,21 +28,20 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
   - Validaciones: ya no falla si no existen configs durante el build; la validación de configs se hace en ejecución.
 
 - `cicd.sh`: wrapper de CI/CD.
-  - Subcomandos: `build`, `build-and-release`.
-  - Construye con `build.sh`, empaqueta en `out/telegraf-custom-<ver>-<mode>-<GOOS>-<GOARCH>.tar.gz` y genera `*.sha256`.
-  - `--publish` (opcional) publica Release vía API (requiere `GITHUB_TOKEN`). El workflow de tags usa GoReleaser en su lugar.
+  - Comando: `build`.
+  - Prepara `telegraf_src` (clonado de Telegraf + plugins + deps) y deja binario y configs en `--dist-dir`.
+  - No empaqueta ni publica; el empaquetado se hace con `make package` en los workflows y la publicación con `softprops/action-gh-release`.
 
 - `.github/workflows/build-telegraf.yml`: workflow manual (workflow_dispatch).
   - Inputs: versión, modo, rutas de `config/` y `plugins/`, `dist_dir` (opcional), `go_get`, `go_get_file`, `go_version`.
-  - `dist_dir`: si se omite, el wrapper `cicd.sh` usará `dist` por defecto y lo creará antes del build. Si se define en el input, se crea ese directorio y se pasa a `build.sh`.
+  - `dist_dir`: si se omite, `cicd.sh` usará `dist` por defecto y lo creará antes del build. Si se define en el input, se crea ese directorio y se pasa a `build.sh`.
   - Validación de configs: solo se exige que `config_dir` exista y tenga `.conf` cuando `mode` = `nano`.
-  - Matrix: `linux/amd64` y `linux/arm64` (`GOOS`/`GOARCH`, `CGO_ENABLED=0`).
-  - Ejecuta `./cicd.sh build ...` y sube artifacts `tar.gz` y `sha256`.
+  - Matrix: `linux/amd64` y `linux/arm64`.
+  - Ejecuta `./cicd.sh build ... --keep-source`, instala `fpm/rpm/zip` y luego `make package` en `telegraf_src`; copia `build/dist/*` a `out/` y los sube como artifacts.
 
 - `.github/workflows/release.yml`: workflow por tag.
   - Trigger: `push` de tags `v*` o `custom-telegraf-*`.
-  - Job matrix: amplio (linux/amd64, linux/arm64, linux/arm/v7, darwin/amd64, darwin/arm64, windows/amd64). Compila y empaqueta.
-  - En Linux, ejecuta `make package` (o `package-deb`/`package-rpm`) en `telegraf_src` para generar `.deb`/`.rpm`.
+  - Job build: prepara `telegraf_src` y ejecuta `make package` para generar TODAS las distros soportadas por el Makefile (Linux, Windows, Darwin, FreeBSD, múltiples arches). Copia `build/dist/*` a `out/` y lo sube como artifacts.
   - Job `release`: descarga artifacts y crea la Release subiendo todos los assets.
   - Checkout con `fetch-depth: 0` para correcta detección de tags previos.
 

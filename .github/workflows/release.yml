@@ -9,22 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-          - goos: linux
-            goarch: arm64
-          - goos: linux
-            goarch: arm
-            goarm: '7'
-          - goos: darwin
-            goarch: amd64
-          - goos: darwin
-            goarch: arm64
-          - goos: windows
-            goarch: amd64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,11 +20,8 @@ jobs:
         with:
           go-version: "1.22.x"
 
-      - name: Build matrix artifacts
+      - name: Build custom Telegraf source (inject plugins + deps)
         env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          GOARM: ${{ matrix.goarm }}
           CGO_ENABLED: 0
         run: |
           set -euo pipefail
@@ -52,36 +33,31 @@ jobs:
             --plugins-dir plugins \
             --dist-dir dist \
             --go-get-file dependencies.txt \
-            --artifact-dir out \
             --keep-source
+          # No empaquetamos aquí; solo preparamos telegraf_src con plugins y deps
 
-      - name: Package via Telegraf Makefile (Linux only)
-        if: ${{ matrix.goos == 'linux' }}
+      - name: Install packaging tools (fpm, rpm, zip)
         run: |
           set -euo pipefail
-          echo "Packaging with Telegraf Makefile in telegraf_src"
+          sudo apt-get update -y
+          sudo apt-get install -y ruby ruby-dev rubygems rpm zip
+          sudo gem install --no-document fpm
+
+      - name: Package all distributions via Telegraf Makefile
+        run: |
+          set -euo pipefail
+          echo "Packaging ALL via Telegraf Makefile in telegraf_src (make package)"
           pushd telegraf_src
-          if make -n tools >/dev/null 2>&1; then make tools; fi
-          if make -n package >/dev/null 2>&1; then
-            make package
-          else
-            if make -n package-deb >/dev/null 2>&1; then make package-deb; fi
-            if make -n package-rpm >/dev/null 2>&1; then make package-rpm || true; fi
-          fi
+          make package
           popd
           mkdir -p out
-          shopt -s nullglob
-          for f in telegraf_src/dist/*.{deb,rpm}; do
-            echo "Found package: $f"; cp -f "$f" out/;
-          done
-          shopt -u nullglob
+          cp -fv telegraf_src/build/dist/* out/ || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: |
-            out/*
+          name: artifacts
+          path: out/*
           if-no-files-found: error
 
   release:

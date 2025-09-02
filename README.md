@@ -21,7 +21,7 @@ Notas:
 - `config_dir` solo es obligatorio en modo `nano`. En `mini`, si falta, el build continúa y se fuerza `mini` desde `build.sh`.
 - Si dejas `dist_dir` vacío, `cicd.sh` usará `dist` por defecto y lo creará antes de invocar el build. Si lo defines, creará ese directorio.
 
-Salida: un `tar.gz` por plataforma con el binario `telegraf` y los `.conf` en `plugins_conf/`. Además, se generan paquetes `.deb` y `.rpm` para Linux (amd64/arm64) usando el Makefile de Telegraf.
+Salida: un `tar.gz` por plataforma con el binario `telegraf` y los `.conf` en `plugins_conf/` (en Windows se genera `.zip`). Además, se generan paquetes `.deb` y `.rpm` para Linux (amd64/arm64) usando el Makefile de Telegraf.
 
 ### Ejecutar el binario empaquetado
 

@@ -93,7 +93,7 @@ jobs:
             --mode "${{ inputs.mode }}"
             --config-dir "$CONF_DIR"
             --plugins-dir "${{ inputs.plugins_dir }}"
-            --artifact-dir out
+            --keep-source
           )
           if [ -n "${{ inputs.go_get }}" ]; then ARGS+=(--go-get "${{ inputs.go_get }}"); fi
           if [ -n "${{ inputs.go_get_file }}" ]; then ARGS+=(--go-get-file "${{ inputs.go_get_file }}"); fi
@@ -101,16 +101,29 @@ jobs:
 
           ./cicd.sh build "${ARGS[@]}"
 
-      - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: telegraf-custom-${{ inputs.telegraf_version }}-${{ inputs.mode }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
-          path: out/telegraf-custom-${{ inputs.telegraf_version }}-${{ inputs.mode }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
-          if-no-files-found: error
+      - name: Install packaging tools (fpm, rpm, zip)
+        if: ${{ matrix.goos == 'linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y ruby ruby-dev rubygems rpm zip
+          sudo gem install --no-document fpm
 
-      - name: Upload checksum artifact
+      - name: Package distributions via Telegraf Makefile
+        if: ${{ matrix.goos == 'linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pushd telegraf_src
+          make package
+          popd
+          mkdir -p out
+          cp -fv telegraf_src/build/dist/* out/ || true
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: telegraf-custom-${{ inputs.telegraf_version }}-${{ inputs.mode }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz.sha256
-          path: out/telegraf-custom-${{ inputs.telegraf_version }}-${{ inputs.mode }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz.sha256
+          name: artifacts-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: out/*
           if-no-files-found: error
