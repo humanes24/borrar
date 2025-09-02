@@ -68,6 +68,13 @@ jobs:
           sudo apt-get install -y ruby ruby-dev rubygems rpm zip
           sudo gem install --no-document fpm
 
+      - name: Install Go tools for Windows packaging
+        run: |
+          set -euo pipefail
+          # Required by scripts/windows-gen-syso.sh when building windows_*.zip
+          go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.0
+          echo "${HOME}/go/bin" >> "$GITHUB_PATH"
+
       - name: Package group via Telegraf Makefile
         run: |
           set -euo pipefail
@@ -84,7 +91,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts
+          name: artifacts-${{ matrix.group }}
           path: out/*
           if-no-files-found: error
 
