@@ -13,18 +13,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - group: linux-core
-            include_packages: "amd64.deb x86_64.rpm linux_amd64.tar.gz arm64.deb aarch64.rpm linux_arm64.tar.gz"
-          # - group: linux-legacy
-          #   include_packages: "i386.deb i386.rpm linux_i386.tar.gz armel.deb armel.rpm linux_armel.tar.gz armhf.deb armv6hl.rpm linux_armhf.tar.gz"
+          - group: all
+            include_packages: "amd64.deb x86_64.rpm linux_amd64.tar.gz arm64.deb aarch64.rpm linux_arm64.tar.gz i386.deb i386.rpm linux_i386.tar.gz armel.deb armel.rpm linux_armel.tar.gz armhf.deb armv6hl.rpm linux_armhf.tar.gz windows_i386.zip windows_amd64.zip windows_arm64.zip darwin_amd64.tar.gz darwin_arm64.tar.gz freebsd_amd64.tar.gz freebsd_i386.tar.gz freebsd_armv7.tar.gz"
           # - group: linux-alt
-          #   include_packages: "mips.deb linux_mips.tar.gz mipsel.deb linux_mipsel.tar.gz riscv64.deb riscv64.rpm linux_riscv64.tar.gz loong64.deb loong64.rpm linux_loong64.tar.gz s390x.deb s390x.rpm linux_s390x.tar.gz ppc64el.deb ppc64le.rpm linux_ppc64le.tar.gz"
-          - group: windows
-            include_packages: "windows_i386.zip windows_amd64.zip windows_arm64.zip"
-          - group: darwin
-            include_packages: "darwin_amd64.tar.gz darwin_arm64.tar.gz"
-          # - group: freebsd
-          #   include_packages: "freebsd_amd64.tar.gz freebsd_i386.tar.gz freebsd_armv7.tar.gz"
+            # include_packages: "mips.deb linux_mips.tar.gz mipsel.deb linux_mipsel.tar.gz riscv64.deb riscv64.rpm linux_riscv64.tar.gz loong64.deb loong64.rpm linux_loong64.tar.gz s390x.deb s390x.rpm linux_s390x.tar.gz ppc64el.deb ppc64le.rpm linux_ppc64le.tar.gz"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -78,7 +70,7 @@ jobs:
       - name: Package group via Telegraf Makefile
         run: |
           set -euo pipefail
-          echo "Packaging group ${{ matrix.group }} via Telegraf Makefile (make package include_packages=...)"
+          echo "Packaging ALL packages via Telegraf Makefile (make package include_packages=...)"
           pushd telegraf_src
           make package include_packages="${{ matrix.include_packages }}"
           popd
