@@ -248,23 +248,28 @@ func (r *OGReport) toModelOGList() og.ModelOG {
 		ModelName: r.Model.ModelName,
 		Relations: make([]*og.Relation, 0, len(r.Model.Relations)),
 	}
-
 	for _, rc := range r.Model.Relations {
-		subRels := make([]*og.SubRelation, 0, len(rc.SubRelations))
-		for _, sr := range rc.SubRelations {
-			subRels = append(subRels, &og.SubRelation{
-				Field:        sr.Field,
-				OgDataStream: sr.OgDataStream,
-				DataType:     sr.DataType,
-				Factor:       sr.Factor,
-			})
+		var subRels []*og.SubRelation = nil
+		var enums []*og.Enums = nil
+		if len(rc.SubRelations) != 0 {
+			subRels = make([]*og.SubRelation, 0, len(rc.SubRelations))
+			for _, sr := range rc.SubRelations {
+				subRels = append(subRels, &og.SubRelation{
+					Field:        sr.Field,
+					OgDataStream: sr.OgDataStream,
+					DataType:     sr.DataType,
+					Factor:       sr.Factor,
+				})
+			}
 		}
-		enums := make([]*og.Enums, 0, len(rc.Enums))
-		for _, e := range rc.Enums {
-			enums = append(enums, &og.Enums{
-				CollectValue: e.CollectValue,
-				OGValue:      e.OGValue,
-			})
+		if len(rc.Enums) != 0 {
+			enums = make([]*og.Enums, 0, len(rc.Enums))
+			for _, e := range rc.Enums {
+				enums = append(enums, &og.Enums{
+					CollectValue: e.CollectValue,
+					OGValue:      e.OGValue,
+				})
+			}
 		}
 		rel := &og.Relation{
 			Field:        rc.Field,
