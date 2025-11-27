@@ -8,15 +8,17 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
 - Modos de build:
   - `mini`: incluye todos los plugins de Telegraf + los custom.
   - `nano`: incluye solo los plugins referenciados en los `.conf` (resuelve dependencias desde `plugins_conf`).
-- Outputs: archivos `tar.gz` por plataforma con el binario `telegraf` y la carpeta `plugins_conf/` con los `.conf` (en Windows se genera `.zip`). Se genera además un `.sha256` por cada artefacto.
+- Outputs:
+  - Workflow manual (`build-telegraf.yml`): entrega el árbol `dist/` (binario + `plugins_conf/` + `run_oda_lite.sh`) sin empaquetar.
+  - Workflow de release (`release.yml`): genera paquetes `tar.gz`/`.zip`/`.deb`/`.rpm` por plataforma (más `.sha256`) usando el Makefile de Telegraf.
 
 ## Flujo end-to-end
 
 1) GitHub Action dispara el build (manual o por tag).
 2) El job de build ejecuta `./cicd.sh build` (wrapper que llama a `build.sh`) para preparar `telegraf_src` con plugins y deps.
 3) `build.sh` clona Telegraf, incorpora plugins, ajusta dependencias Go y compila usando `custom_builder` de Telegraf. Si no existe el directorio de `config`, fuerza el modo `mini` (si pediste `nano`, avisa y lo ignora).
-4) El workflow ejecuta `make package` dentro de `telegraf_src` y copia todos los paquetes a `out/`.
-5) Para releases por tag, un segundo job descarga los artifacts y crea la Release en GitHub adjuntando todos los paquetes.
+4) Manual (`build-telegraf.yml`): solo construye binario + configs y sube el árbol `dist/` como artifact (sin empaquetar).
+5) Tags (`release.yml`): tras preparar el árbol con `cicd.sh`, ejecuta `make package include_packages=...` por grupos de plataformas, sube artifacts y luego crea la Release adjuntando todos los paquetes.
 
 ## Archivos clave
 
@@ -36,25 +38,25 @@ Este documento explica el flujo de extremo a extremo para construir y publicar u
   - Inputs: versión, modo, rutas de `config/` y `plugins/`, `dist_dir` (opcional), `go_get`, `go_get_file`, `go_version`.
   - `dist_dir`: si se omite, `cicd.sh` usará `dist` por defecto y lo creará antes del build. Si se define en el input, se crea ese directorio y se pasa a `build.sh`.
   - Validación de configs: solo se exige que `config_dir` exista y tenga `.conf` cuando `mode` = `nano`.
-  - Matrix: `linux/amd64` y `linux/arm64`.
-  - Ejecuta `./cicd.sh build ... --keep-source`, instala `fpm/rpm/zip` y luego `make package` en `telegraf_src`; copia `build/dist/*` a `out/` y los sube como artifacts.
+  - Matrix: `linux/darwin/windows` x `amd64/arm64`.
+  - Ejecuta `./cicd.sh build ...` (sin empaquetar) y sube `dist/**` como artifact.
 
 - `.github/workflows/release.yml`: workflow por tag.
   - Trigger: `push` de tags `v*` o `custom-telegraf-*`.
-  - Job build: prepara `telegraf_src` y ejecuta `make package` segmentado por grupos usando `include_packages` (Linux core/legacy, Windows, Darwin, FreeBSD) para reducir uso de disco por runner.
-    - Nota: el grupo Linux "alt" (mips, mipsel, riscv64, loong64, s390x, ppc64le) está comentado temporalmente para ahorrar espacio/tiempo; puede reactivarse editando la matriz del workflow.
+  - Job build: prepara `telegraf_src` con `cicd.sh build` (modo mini, `--go-get-file dependencies.txt`, `--keep-source`) y luego empaqueta por grupos (`make package include_packages=...`).
+    - Matrix de grupos: Linux core/legacy, Windows, Darwin, FreeBSD. El grupo Linux "alt" (mips, mipsel, riscv64, loong64, s390x, ppc64le) está comentado temporalmente.
     - Paso previo libera espacio del runner (`/usr/share/dotnet`, `/opt/ghc`, Android, CodeQL, prune de Docker) y al final limpia caches (`go clean`) y `telegraf_src/build`.
-  - Job `release`: descarga artifacts y crea la Release subiendo todos los assets.
+  - Job `release`: descarga artifacts y crea la Release subiendo todos los assets con `softprops/action-gh-release`.
   - Checkout con `fetch-depth: 0` para correcta detección de tags previos.
 
 Nota: ya no usamos GoReleaser para publicar; la Release se crea con la acción `softprops/action-gh-release` adjuntando todos los artifacts generados por los jobs de build.
 
-## Empaquetado (.deb/.rpm)
+## Empaquetado (.deb/.rpm/.tar.gz/.zip)
 
-- Tras el build, el workflow ejecuta dentro de `telegraf_src` los targets del Makefile de Telegraf:
-  - `make package-deb` y `make package-rpm` (si no existe el target específico, usa `make package`).
-- Los paquetes resultantes se recogen desde `telegraf_src/dist/` y se suben como artifacts del job.
-- En el job de release, GoReleaser adjunta esos `.deb`/`.rpm` como assets del tag (vía `release.extra_files`).
+- El empaquetado solo ocurre en `release.yml`, tras preparar el árbol con `cicd.sh build`.
+- Se ejecuta `make package include_packages="..."` desde `telegraf_src` según el grupo de la matriz (Linux core/legacy, Windows, Darwin, FreeBSD). Lista de paquetes incluida en `include_packages` del workflow.
+- Los artefactos se toman de `telegraf_src/build/dist/` y se copian a `out/` para subirlos como artifacts.
+- En el job de release, `softprops/action-gh-release` adjunta todos los `tar.gz`/`.zip`/`.deb`/`.rpm`/`.sha256` al tag.
 
 ## Detalles técnicos relevantes
 
@@ -67,8 +69,8 @@ Nota: ya no usamos GoReleaser para publicar; la Release se crea con la acción `
 
 ## Disparadores y publicación
 
-- Manual: Actions → “Build Custom Telegraf”. Permite probar builds sin publicar Release.
-- Por tag: al hacer push de una etiqueta `vX.Y.Z` o `custom-telegraf-...`, se compila y se publica Release automáticamente subiendo los artefactos al tag.
+  - Manual: Actions → “Build Custom Telegraf”. Permite probar builds sin publicar Release (artefacto: árbol `dist/` sin empaquetar).
+  - Por tag: al hacer push de una etiqueta `vX.Y.Z` o `custom-telegraf-...`, se compila, se empaqueta y se publica Release automáticamente subiendo los artefactos al tag.
 
 ## Permisos, tokens y configuración del repo
 
@@ -102,7 +104,7 @@ Requisitos en GitHub (Settings del repo):
 
 ---
 
-Última actualización: generada junto con la integración inicial de CI/CD (workflows, cicd.sh y GoReleaser). Este archivo se actualizará con cambios futuros.
+Última actualización: alineado con los workflows `build-telegraf.yml` y `release.yml` vigentes. Este archivo se actualizará con cambios futuros.
 ## Ejecución local del binario empaquetado
 
 Se genera un `run_oda_lite.sh` que arranca Telegraf con un directorio de configuración validado:
