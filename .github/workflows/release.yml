@@ -23,13 +23,13 @@ jobs:
           #   include_packages: "mips.deb linux_mips.tar.gz mipsel.deb linux_mipsel.tar.gz riscv64.deb riscv64.rpm linux_riscv64.tar.gz loong64.deb loong64.rpm linux_loong64.tar.gz s390x.deb s390x.rpm linux_s390x.tar.gz ppc64el.deb ppc64le.rpm linux_ppc64le.tar.gz"
           - group: windows
             include_packages: "windows_i386.zip windows_amd64.zip windows_arm64.zip"
-            exclude_plugins: "inputs/ssh_guard"
+            exclude_plugins: "inputs/ssh_guard,inputs/usb_guard"
           - group: darwin
             include_packages: "darwin_amd64.tar.gz darwin_arm64.tar.gz"
-            exclude_plugins: "inputs/ssh_guard"
+            exclude_plugins: "inputs/ssh_guard,inputs/usb_guard"
           - group: freebsd
             include_packages: "freebsd_amd64.tar.gz freebsd_i386.tar.gz freebsd_armv7.tar.gz"
-            exclude_plugins: "inputs/ssh_guard"
+            exclude_plugins: "inputs/ssh_guard,inputs/usb_guard"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

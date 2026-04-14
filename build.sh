@@ -184,6 +184,14 @@ if [ -n "$EXCLUDE_PLUGINS" ]; then
         else
             echo "   - No encontrado (ya ausente): $rel"
         fi
+        # Eliminar también el fichero de registro en <tipo>/all/<nombre>.go
+        plugin_type="${rel%%/*}"
+        plugin_name="${rel##*/}"
+        reg_file="$CLONE_DIR/plugins/${plugin_type}/all/${plugin_name}.go"
+        if [ -f "$reg_file" ]; then
+            rm -f "$reg_file"
+            echo "   - Registro eliminado: ${plugin_type}/all/${plugin_name}.go"
+        fi
     done
 fi
 
