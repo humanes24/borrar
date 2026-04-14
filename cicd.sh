@@ -23,6 +23,7 @@ Opciones:
   --dist-dir <dir>        Directorio salida de build.sh (default: dist)
   --go-get <lista>        Dependencias extra para go get (espacio/coma)
   --go-get-file <file>    Fichero con dependencias (una por línea)
+  --exclude-plugins <ls>  Lista negra de plugins a excluir del copiado (espacio/coma, p. ej. inputs/ssh_guard)
   --keep-source           No borra 'telegraf_src' al finalizar
 EOF
 }
@@ -40,6 +41,7 @@ DIST_DIR="dist"
 GO_GET_LIST=""
 GO_GET_FILE=""
 KEEP_SOURCE=false
+EXCLUDE_PLUGINS=""
 
 PUBLISH=false
 RELEASE_TAG=""
@@ -57,6 +59,7 @@ while [[ $# -gt 0 ]]; do
     --go-get) GO_GET_LIST+=" $2"; shift 2;;
     --go-get-file) GO_GET_FILE="$2"; shift 2;;
     --keep-source) KEEP_SOURCE=true; shift 1;;
+    --exclude-plugins) EXCLUDE_PLUGINS+=" $2"; shift 2;;
     -h|--help) usage; exit 0;;
     *) echo "Opción desconocida: $1"; usage; exit 1;;
   esac
@@ -83,6 +86,7 @@ BUILD_ARGS=(
 )
 if [ -n "$GO_GET_LIST" ]; then BUILD_ARGS+=(--go-get "$GO_GET_LIST"); fi
 if [ -n "$GO_GET_FILE" ]; then BUILD_ARGS+=(--go-get-file "$GO_GET_FILE"); fi
+if [ -n "$EXCLUDE_PLUGINS" ]; then BUILD_ARGS+=(--exclude-plugins "$EXCLUDE_PLUGINS"); fi
 if [ "$KEEP_SOURCE" = true ]; then BUILD_ARGS+=(--keep-source); fi
 
 echo "🧱 Ejecutando build.sh ${BUILD_ARGS[*]}"

@@ -12,6 +12,7 @@ NO_INTERACTIVE=false
 GO_GET_LIST=""
 GO_GET_FILE=""
 KEEP_SOURCE=false
+EXCLUDE_PLUGINS=""
 
 usage() {
     echo "Uso: $0 [--version <telegraf_version>] [--config-dir <dir_config>] [--plugins-dir <dir_plugins>] [--mode <nano|mini>] [--dist-dir <dir_destino>] [--no-interactive] [--go-get <mod@ver ...>] [--go-get-file <ruta>]"
@@ -25,6 +26,7 @@ usage() {
     echo "  --no-interactive  Desactiva prompts interactivos (pensado para CI)"
     echo "  --go-get        Lista de módulos a añadir (separados por espacio o coma). Repetible"
     echo "  --go-get-file   Fichero con una dependencia por línea para 'go get'"
+    echo "  --exclude-plugins Lista negra de plugins custom a no copiar (separados por espacio o coma, e.g. inputs/ssh_guard)"
     echo "  --help          Muestra esta ayuda"
     echo "  --keep-source   No elimina el árbol clonado (telegraf_src) al finalizar"
     echo
@@ -94,6 +96,15 @@ while [[ $# -gt 0 ]]; do
       KEEP_SOURCE=true
       shift 1
       ;;
+    --exclude-plugins)
+      if [ -n "${2:-}" ]; then
+        EXCLUDE_PLUGINS+=" ${2}"
+        shift 2
+      else
+        echo "❌ '--exclude-plugins' requiere al menos una ruta de plugin (p. ej. inputs/ssh_guard)"
+        exit 1
+      fi
+      ;;
     *)
       echo "❌ Opción desconocida: $1"
       usage
@@ -156,6 +167,25 @@ fi
 # Copiar plugins custom al árbol "plugins/"
 echo "📂 Copiando plugins custom al árbol de Telegraf..."
 cp -a "$CUSTOM_PLUGINS_DIR"/. "$CLONE_DIR/plugins/"
+
+# Excluir plugins solicitados (lista negra)
+if [ -n "$EXCLUDE_PLUGINS" ]; then
+    echo "⛔ Excluyendo plugins custom (lista negra): $EXCLUDE_PLUGINS"
+    echo "$EXCLUDE_PLUGINS" | tr ',\t ' '\n\n\n' | while IFS= read -r rel; do
+        [ -z "$rel" ] && continue
+        # Sanitizar rutas peligrosas
+        case "$rel" in
+          /*|*..*|"") echo "   ⚠️  Ruta insegura u vacía, se omite: '$rel'"; continue ;;
+        esac
+        target="$CLONE_DIR/plugins/$rel"
+        if [ -e "$target" ]; then
+            rm -rf "$target"
+            echo "   - Excluido $rel"
+        else
+            echo "   - No encontrado (ya ausente): $rel"
+        fi
+    done
+fi
 
 # Interactivo: añadir librerías al go.mod
 echo "📦 Añadir dependencias adicionales al go.mod (opcional)"
