@@ -264,7 +264,7 @@ elif [ "$MODE" = "mini" ]; then
     TELEGRAF_CONF="$PLUGINS_TELEGRAF_DIR/telegraf_all.conf"
     > "$TELEGRAF_CONF"
 
-    EXCLUDE_PLUGINS=("outputs.all" "inputs.all" "inputs.example" "processors.all" "parsers.xpath" "parsers.all" "serializers.all" "secretstores.all" "aggregators.all")
+    MINI_SKIP_PLUGINS=("outputs.all" "inputs.all" "inputs.example" "processors.all" "parsers.xpath" "parsers.all" "serializers.all" "secretstores.all" "aggregators.all")
 
     for type in inputs processors outputs aggregators parsers secretstores serializers; do
         for plugin_dir in "plugins/$type/"*; do
@@ -272,9 +272,9 @@ elif [ "$MODE" = "mini" ]; then
                 plugin_name=$(basename "$plugin_dir")
                 full_name="$type.$plugin_name"
 
-                # Saltar plugins excluidos
+                # Saltar meta-paquetes (all/) y plugins no válidos para custom_builder
                 skip=false
-                for ex in "${EXCLUDE_PLUGINS[@]}"; do
+                for ex in "${MINI_SKIP_PLUGINS[@]}"; do
                     if [ "$full_name" = "$ex" ]; then
                         skip=true
                         break
