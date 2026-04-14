@@ -69,6 +69,7 @@ type SshGuard struct {
 	mutex          sync.Mutex
 	localIpInIface string
 	sshSnifer      *pcap.Handle
+	done           chan struct{}
 	Log            telegraf.Logger `toml:"-"`
 	accumulator    telegraf.Accumulator
 }
@@ -127,6 +128,7 @@ func (ss *SshGuard) Init() error {
 }
 func (ss *SshGuard) Start(acc telegraf.Accumulator) error {
 	ss.accumulator = acc
+	ss.done = make(chan struct{})
 	go ss.checkBytesStatistics()
 	go ss.monitorSshLogin()
 	go ss.snifferSshTraffic()
@@ -138,11 +140,20 @@ func (ss *SshGuard) Gather(acc telegraf.Accumulator) error {
 }
 
 func (ss *SshGuard) Stop() {
-	ss.sshSnifer.Close()
+	close(ss.done)
+	if ss.sshSnifer != nil {
+		ss.sshSnifer.Close()
+	}
 }
 func (ss *SshGuard) checkBytesStatistics() {
+	ticker := time.NewTicker(time.Duration(ss.IntervalRateSeconds) * time.Second)
+	defer ticker.Stop()
 	for {
-		time.Sleep(time.Duration(ss.IntervalRateSeconds) * time.Second)
+		select {
+		case <-ss.done:
+			return
+		case <-ticker.C:
+		}
 		ss.Log.Info("\n---- Estadísticas de sesiones SSH ----")
 		now := time.Now()
 		ss.mutex.Lock()
@@ -173,7 +184,7 @@ func (ss *SshGuard) checkBytesStatistics() {
 			me_rx := rxMetric.TelegrafNormalize()
 			me_tx := txMetric.TelegrafNormalize()
 			ss.accumulator.AddFields(me_rx.DeviceID, me_rx.Fields, me_rx.Tags, me_rx.GetTime())
-			ss.accumulator.AddFields(me_tx.DeviceID, me_tx.Fields, me_tx.Tags, me_tx.Time)
+			ss.accumulator.AddFields(me_tx.DeviceID, me_tx.Fields, me_tx.Tags, me_tx.GetTime())
 			ss.Log.Infof("Sesión %v -> Bytes Recibidos: %v | Bytes Enviados: %v\n", session, formatLogBytes(stats.bytesRecv), formatLogBytes(stats.bytesSent))
 			if stats.delete {
 				delete(ss.sshSessions, fmt.Sprintf("%v:%v", stats.ip, stats.port))
@@ -190,7 +201,8 @@ func (ss *SshGuard) monitorSshLogin() {
 	// now := time.Now()
 	file, err := os.Open(auditLogPath)
 	if err != nil {
-		panic(fmt.Sprintf("Error abriendo log: %v", err))
+		ss.Log.Errorf("Error abriendo log %s: %v", auditLogPath, err)
+		return
 	}
 	defer file.Close()
 
@@ -213,6 +225,11 @@ func (ss *SshGuard) monitorSshLogin() {
 	noEventCount := 0
 
 	for {
+		select {
+		case <-ss.done:
+			return
+		default:
+		}
 		line, err := reader.ReadString('\n')
 		// log.Println("Tiempo: ", time.Since(now))
 		// now = time.Now()
@@ -321,20 +338,27 @@ func (ss *SshGuard) monitorSshLogin() {
 					ss.accumulator.AddFields(telEvent.GetDeviceID(), telEvent.GetFields(), telEvent.GetTags(), telEvent.GetTime())
 				}
 			}
-			time.Sleep(MONITOR_SSH_LOGIN_BASE_TIME)
+			select {
+			case <-ss.done:
+				return
+			case <-time.After(MONITOR_SSH_LOGIN_BASE_TIME):
+			}
 			continue
 		}
 		noEventCount++
 		factor := 5.0 // Ajusta este valor para cambiar la velocidad de crecimiento
 		delayFloat := float64(MONITOR_SSH_LOGIN_BASE_TIME) * math.Log1p(float64(noEventCount)*factor)
-		// delayFloat := float64(MONITOR_SSH_LOGIN_BASE_TIME) * math.Log1p(float64(noEventCount))
 		if delayFloat < float64(MONITOR_SSH_LOGIN_BASE_TIME) {
 			delayFloat = float64(MONITOR_SSH_LOGIN_BASE_TIME)
 		}
 		if delayFloat > float64(MONITOR_SSH_LOGIN_LIMIT_TIME) {
 			delayFloat = float64(MONITOR_SSH_LOGIN_LIMIT_TIME)
 		}
-		time.Sleep(time.Duration(delayFloat))
+		select {
+		case <-ss.done:
+			return
+		case <-time.After(time.Duration(delayFloat)):
+		}
 	}
 
 }
@@ -342,13 +366,16 @@ func (ss *SshGuard) snifferSshTraffic() {
 	// monitorSSHTraffic captura paquetes SSH y actualiza estadísticas
 	handle, err := pcap.OpenLive(ss.InterfaceTracked, 1600, true, 0, true)
 	if err != nil {
-		log.Fatalf("Error al abrir la interfaz: %v", err)
+		ss.Log.Errorf("Error al abrir la interfaz %s: %v", ss.InterfaceTracked, err)
+		return
 	}
 	ss.sshSnifer = handle
 
 	// Filtrar tráfico en el puerto 22
 	if err := handle.SetBPFFilter(fmt.Sprintf("tcp port %d", ss.SshListenPort)); err != nil {
-		log.Fatalf("Error al establecer filtro BPF: %v", err)
+		ss.Log.Errorf("Error al establecer filtro BPF en puerto %d: %v", ss.SshListenPort, err)
+		handle.Close()
+		return
 	}
 
 	ss.Log.Infof("Monitorizando tráfico SSH en %s (actualización cada %d seg)...\n", ss.InterfaceTracked, ss.IntervalRateSeconds)
@@ -398,7 +425,6 @@ func (ss *SshGuard) snifferSshTraffic() {
 			ss.sshSessions[sessionKey].bytesRecv += packetSize
 		} else {
 			ss.Log.Infof("unknown traffic from: src: %v:%v | dst: %v:%v \n", ip.SrcIP.String(), tcp.SrcPort.String(), ip.DstIP.String(), tcp.DstPort.String())
-			continue
 		}
 		ss.mutex.Unlock()
 	}

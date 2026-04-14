@@ -3,7 +3,6 @@ package usb_guard
 import (
 	_ "embed"
 	"fmt"
-	"log"
 	"slices"
 	"sort"
 	"strings"
@@ -86,7 +85,7 @@ func (us *UsbsGuard) Start(acc telegraf.Accumulator) error {
 	us.acc = acc
 	us.Log.Info("Usb events collect started")
 	if err := us.kernelUsbConn.Connect(netlink.UdevEvent); err != nil {
-		log.Fatalln("Unable to connect to Netlink Kobject UEvent socket")
+		return fmt.Errorf("unable to connect to Netlink Kobject UEvent socket: %w", err)
 	}
 	queue := make(chan netlink.UEvent, 2)
 	errors := make(chan error)
@@ -168,7 +167,6 @@ func (us *UsbsGuard) manageEventQueue() {
 		}
 		if len(usbsPlugIn) != 0 {
 			if usbsMetricsIn := parseRawUsbToCompact(usbsPlugIn, CONNECTED, true); len(usbsMetricsIn) != 0 {
-				fmt.Println()
 				us.Log.Info("event usbs plugin: ")
 				for _, sysMetric := range usbsMetricsIn {
 					me := sysMetric.TelegrafNormalize()
@@ -273,9 +271,4 @@ func init() {
 	inputs.Add("usb_guard", func() telegraf.Input {
 		return &UsbsGuard{}
 	})
-}
-func print(usbs map[string]*UsbDev) {
-	for _, d := range usbs {
-		log.Printf("Device: %v | idSerialName %v | idSerialShort %v | idFs %v | Manu: %v | Ts: %v\n", d.Interface, d.IdSerialName, d.IdSerialShort, d.IdFsUuidEnc, d.ManufacturerId, d.Timestamp)
-	}
 }

@@ -27,6 +27,7 @@ type OGReport struct {
 	DeviceInUriTagName     string          `toml:"deviceinuri"`  //Nombre del tag donde viene el deviceid de la uri. Si vacio se coge el measurement
 	IncludeFieldNotMatched bool            `toml:"allfields"`    //Si esta a true incluira todos los fields que vengan aunque no matcheen, manteniendo el dato como viene
 	Timeout                config.Duration `toml:"timeout"`
+	InsecureSkipVerify     bool            `toml:"insecure_skip_verify"`
 	ClientRestOption       og_http.ClientOptions
 	Log                    telegraf.Logger `toml:"-"`
 	Model                  ModelConfig     `toml:"model"`
@@ -179,7 +180,7 @@ func (o *OGReport) Connect() error {
 			ClientTimes:            og_http.ClientTimes{TimeOutInCalls: time.Duration(o.Timeout), MaxRetries: 0},
 			RemovePrefixNorthSouth: !prefix,
 			ApiKey:                 o.ApiKey,
-			TransPort:              &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
+			TransPort:              &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: o.InsecureSkipVerify}},
 		},
 	}
 	return nil
@@ -287,5 +288,5 @@ func (r *OGReport) toModelOGList() og.ModelOG {
 }
 
 func init() {
-	outputs.Add("og_report", func() telegraf.Output { return &OGReport{} })
+	outputs.Add("og_report", func() telegraf.Output { return &OGReport{InsecureSkipVerify: true} })
 }
